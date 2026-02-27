@@ -1,3 +1,11 @@
+// File: lib.rs - This file is part of Tetcore
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+// Tetcore kernel providing core protocol logic including block
+// construction, transaction validation, state root computation,
+// receipt generation, and consensus integration. The kernel is the
+// heart of the deterministic state machine.
+
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;

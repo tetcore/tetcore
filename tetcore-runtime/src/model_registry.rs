@@ -1,3 +1,10 @@
+// File: model_registry.rs - This file is part of Tetcore
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+// Model registry module for Tetcore runtime. Manages AI model registration,
+// versioning, shard commitments, pricing policies, revenue splits,
+// and model lifecycle states. Supports the IFP asset model.
+
 use crate::RuntimeError;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

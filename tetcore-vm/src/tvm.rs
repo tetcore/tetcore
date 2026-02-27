@@ -1,3 +1,11 @@
+// File: tvm.rs - This file is part of Tetcore
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+// Tetcore Virtual Machine (TVM) implementation providing WASM-based
+// deterministic contract execution. Includes opcodes, gas scheduling,
+// execution context, memory management, and stack operations for
+// smart contract runtime.
+
 use crate::VMError;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

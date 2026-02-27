@@ -1,3 +1,11 @@
+// File: lib.rs - This file is part of Tetcore
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+// Tetcore node library providing the full node implementation including
+// block execution, transaction pool management, state storage, RPC
+// handlers, and P2P networking. Integrates kernel, runtime, and VM
+// components into a complete blockchain node.
+
 use std::collections::HashMap;
 use tetcore_kernel::{compute_state_root, BlockHeader, Kernel, Receipt, Transaction};
 use tetcore_primitives::{account::AccountData, Address, Hash32};

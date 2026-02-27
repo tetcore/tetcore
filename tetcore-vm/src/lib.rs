@@ -1,3 +1,10 @@
+// File: lib.rs - This file is part of Tetcore
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+// Tetcore VM library providing the Tetcore Virtual Machine (TVM) and
+// Tetcore Contract Language (TCL) compiler. Executes smart contracts
+// with deterministic gas metering and WASM runtime support.
+
 pub mod tcl;
 pub mod tvm;
 

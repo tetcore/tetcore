@@ -1,3 +1,10 @@
+// File: vault.rs - This file is part of Tetcore
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+// Vault module for Tetcore runtime. Manages staking positions,
+// vault creation, stake/unstake operations, reward distribution,
+// and vault states. Enables TNT staking for inference capacity.
+
 use crate::RuntimeError;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

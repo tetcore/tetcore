@@ -1,3 +1,10 @@
+// File: accounts.rs - This file is part of Tetcore
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+// Accounts module for Tetcore runtime. Manages account balances, nonces,
+// code storage, and account data. Provides transfer, deposit, withdrawal,
+// and account creation functionality.
+
 use crate::RuntimeError;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

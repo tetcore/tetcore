@@ -1,3 +1,10 @@
+// File: revenue.rs - This file is part of Tetcore
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+// Revenue module for Tetcore runtime. Manages fee distribution,
+// revenue routing to operators, model owners, shard providers,
+// validators, and treasury. Implements the revenue split mechanism.
+
 use crate::RuntimeError;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

@@ -1,3 +1,10 @@
+// File: governance.rs - This file is part of Tetcore
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+// Governance module for Tetcore runtime. Manages proposals, voting,
+// proposal states, delegation, and governance parameters. Implements
+// on-chain governance with token-weighted voting and timelocks.
+
 use crate::RuntimeError;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

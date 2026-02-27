@@ -1,3 +1,10 @@
+// File: main.rs - This file is part of Tetcore
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+// Tetcore CLI tool providing command-line interface for blockchain
+// operations including account management, transaction signing, smart
+// contract deployment, query commands, and node interaction.
+
 use clap::{Parser, Subcommand};
 use std::str::FromStr;
 use tetcore_kernel::Transaction;

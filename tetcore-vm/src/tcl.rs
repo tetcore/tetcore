@@ -1,3 +1,10 @@
+// File: tcl.rs - This file is part of Tetcore
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+// Tetcore Contract Language (TCL) compiler and module definition.
+// Provides TCL source parsing, AST representation, storage layout,
+// function definitions, and compilation to TVM bytecode.
+
 use crate::VMError;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

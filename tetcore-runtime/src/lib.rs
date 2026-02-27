@@ -1,3 +1,10 @@
+// File: lib.rs - This file is part of Tetcore
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+// Tetcore runtime library containing module implementations including
+// accounts, governance, inference, model registry, revenue, and vault.
+// Provides the runtime logic executed by the VM for state transitions.
+
 pub mod accounts;
 pub mod governance;
 pub mod inference;

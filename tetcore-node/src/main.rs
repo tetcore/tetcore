@@ -1,3 +1,10 @@
+// File: main.rs - This file is part of Tetcore
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+// Main entry point for the Tetcore full node. Provides CLI interface
+// for running the node in various modes (full, light, authority),
+// initializing genesis, exporting state, and other node operations.
+
 use clap::{Parser, Subcommand};
 use tetcore_node::{NodeMode, TetcoreNode};
 use tetcore_primitives::{Address, Hash32};

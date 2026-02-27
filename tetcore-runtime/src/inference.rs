@@ -1,3 +1,10 @@
+// File: inference.rs - This file is part of Tetcore
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+// Inference module for Tetcore runtime. Manages AI model prompts,
+// receipts, escrow, pricing, and inference lifecycle. Implements
+// the Intelligence Fabric Protocol for decentralized inference.
+
 use crate::RuntimeError;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
