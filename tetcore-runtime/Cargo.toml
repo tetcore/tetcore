@@ -1,0 +1,22 @@
+[package]
+name = "tetcore-runtime"
+version.workspace = true
+edition.workspace = true
+description = "Tetcore Runtime - Protocol modules (Accounts, Model Registry, Governance, etc.)"
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+tetcore-primitives = { path = "../tetcore-primitives" }
+tetcore-kernel = { path = "../tetcore-kernel" }
+serde = { workspace = true }
+thiserror.workspace = true
+sha2.workspace = true
+
+[features]
+default = ["std"]
+std = ["serde/std"]
+
+[lib]
+path = "src/lib.rs"

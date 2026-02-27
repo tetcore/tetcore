@@ -1,0 +1,16 @@
+[package]
+name = "tetcore-vm"
+version.workspace = true
+edition.workspace = true
+description = "Tetcore VM - TVM (Tetcore Virtual Machine) and TCL compiler"
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+tetcore-primitives = { path = "../tetcore-primitives" }
+serde = { workspace = true }
+thiserror.workspace = true
+
+[lib]
+path = "src/lib.rs"

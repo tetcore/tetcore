@@ -1,0 +1,24 @@
+[package]
+name = "tetcore-cli"
+version = "0.1.0"
+edition = "2021"
+description = "Tetcore CLI - Command line interface for Tetcore node"
+
+[dependencies]
+tetcore-primitives = { path = "../tetcore-primitives" }
+tetcore-node = { path = "../tetcore-node" }
+tetcore-vm = { path = "../tetcore-vm" }
+tetcore-kernel = { path = "../tetcore-kernel" }
+clap = { version = "4.0", features = ["derive"] }
+thiserror = "1.0"
+rand = "0.8"
+ed25519-dalek = { version = "2.0", features = ["serde", "rand_core"] }
+hex = "0.4"
+
+[features]
+default = ["std"]
+std = []
+
+[[bin]]
+name = "tetcore"
+path = "src/main.rs"
