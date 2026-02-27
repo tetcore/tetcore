@@ -8,8 +8,8 @@ authors.workspace = true
 repository.workspace = true
 
 [dependencies]
-tetcore-primitives = { path = "../tetcore-primitives" }
-tetcore-kernel = { path = "../tetcore-kernel" }
+tetcore-primitives = { path = "../tetcore-primitives", version = "0.1.0" }
+tetcore-kernel = { path = "../tetcore-kernel", version = "0.1.0" }
 serde = { workspace = true }
 thiserror.workspace = true
 sha2.workspace = true
