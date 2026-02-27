@@ -1,0 +1,5 @@
+/target
+/reports/*.json
+/reports/*.txt
+.DS_Store
+*.log
