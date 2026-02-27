@@ -14,6 +14,7 @@ pub mod block;
 pub mod blockchain;
 pub mod consensus;
 pub mod contracts;
+pub mod core;
 pub mod crypto;
 pub mod economics;
 pub mod governance;
@@ -44,9 +45,21 @@ pub use blockchain::{
     ForkConfig, ForkMigration, HeaderMetadata, ImportError, ImportErrorKind, ImportResult,
     SyncState, SyncType,
 };
+pub use consensus::{
+    Authority, AuthoritySet, BFTMessage, BFTMessageType, BFTState, ConsensusCommit,
+    ConsensusParams, ConsensusProposal, ConsensusRound, ConsensusRoundState, ConsensusState,
+    ConsensusTimestamps, ConsensusVote, EquivocationProof, FinalitySignature, RoundState,
+    SlashingInfo, SlashingOffense, Validator, ValidatorMetadata, ValidatorPerf, ValidatorRanking,
+    ValidatorSet, ValidatorSetChange, ValidatorSignature, ValidatorStatus, VoteMessage,
+};
 pub use contracts::{
     Contract, ContractCall, ContractCode, ContractEvent, ContractLog, ContractMetadata,
     ContractMethod, ContractResult, ContractStorage, ContractType,
+};
+pub use core::{
+    BlockNumber, ChainId, Constants, CoreChainType, EventEmitter, EventFilter, EventId, EventPhase,
+    Nonce, RuntimeVersion, SystemError, SystemErrorKind, SystemEvent, SystemEventType, SystemInfo,
+    SystemProperties, SystemVersion, Timestamp,
 };
 pub use crypto::{Address, PrivateKey, PublicKey, Signature};
 pub use economics::{
@@ -79,6 +92,6 @@ pub use transactions::{
 pub use validator_discovery::{
     ApiVersion, AuthoritySetTransition, DiscoveryAnnounce, DiscoveryFilter, DiscoveryRequest,
     DiscoveryRequestType, DiscoveryResponse, NetworkTopology, PeerInfo, ValidatorDiscoveryConfig,
-    ValidatorEndpoint, ValidatorInfo, ValidatorPerformance, ValidatorRegistry,
-    ValidatorSessionInfo, ValidatorSetSnapshot,
+    ValidatorEndpoint, ValidatorInfo, ValidatorRegistry, ValidatorSessionInfo,
+    ValidatorSetSnapshot,
 };

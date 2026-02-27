@@ -71,13 +71,13 @@ impl AuthoritySet {
 }
 
 #[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum Vote {
+pub enum ConsensusVote {
     Yes,
     No,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Commit {
+pub struct ConsensusCommit {
     pub height: u64,
     pub round: u64,
     pub block_hash: Hash32,
@@ -85,7 +85,7 @@ pub struct Commit {
     pub signature_threshold: u32,
 }
 
-impl Commit {
+impl ConsensusCommit {
     pub fn new(height: u64, round: u64, block_hash: Hash32) -> Self {
         Self {
             height,
@@ -112,15 +112,15 @@ pub struct VoteMessage {
     pub round: u64,
     pub block_id: Option<Hash32>,
     pub voter: Address,
-    pub vote: Vote,
+    pub vote: ConsensusVote,
     pub timestamp: u64,
 }
 
 #[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BFTState {
     Propose,
-    Vote,
-    Commit,
+    Prevote,
+    Precommit,
     Finalized,
 }
 
@@ -217,46 +217,402 @@ impl Default for ValidatorSet {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct BlockHeader {
-    pub parent_hash: Hash32,
-    pub number: u64,
-    pub state_root: Hash32,
-    pub transaction_root: Hash32,
-    pub receipts_root: Hash32,
-    pub validator_set_id: u64,
+pub struct ConsensusProposal {
+    pub height: u64,
+    pub round: u64,
+    pub block_hash: Hash32,
+    pub proposer: Address,
     pub timestamp: u64,
-    pub extra_data: Vec<u8>,
 }
 
-impl BlockHeader {
-    pub fn new(parent_hash: Hash32, number: u64) -> Self {
+impl ConsensusProposal {
+    pub fn new(height: u64, round: u64, block_hash: Hash32, proposer: Address) -> Self {
         Self {
-            parent_hash,
-            number,
-            state_root: Hash32::empty(),
-            transaction_root: Hash32::empty(),
-            receipts_root: Hash32::empty(),
-            validator_set_id: 0,
+            height,
+            round,
+            block_hash,
+            proposer,
             timestamp: 0,
-            extra_data: Vec::new(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Prevote {
+    pub height: u64,
+    pub round: u64,
+    pub block_id: Option<Hash32>,
+    pub voter: Address,
+    pub timestamp: u64,
+}
+
+impl Prevote {
+    pub fn new(height: u64, round: u64, block_id: Option<Hash32>, voter: Address) -> Self {
+        Self {
+            height,
+            round,
+            block_id,
+            voter,
+            timestamp: 0,
         }
     }
 
-    pub fn hash(&self) -> Hash32 {
-        use sha2::{Digest, Sha256};
-        let mut hasher = Sha256::new();
-        hasher.update(self.parent_hash.as_bytes());
-        hasher.update(&self.number.to_le_bytes());
-        hasher.update(self.state_root.as_bytes());
-        hasher.update(self.transaction_root.as_bytes());
-        hasher.update(self.receipts_root.as_bytes());
-        hasher.update(&self.validator_set_id.to_le_bytes());
-        hasher.update(&self.timestamp.to_le_bytes());
-        let result = hasher.finalize();
-        let mut hash = [0u8; 32];
-        hash.copy_from_slice(&result);
-        Hash32(hash)
+    pub fn is_nil(&self) -> bool {
+        self.block_id.is_none()
     }
 }
 
-use sha2::{Digest, Sha256};
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Precommit {
+    pub height: u64,
+    pub round: u64,
+    pub block_id: Option<Hash32>,
+    pub voter: Address,
+    pub timestamp: u64,
+}
+
+impl Precommit {
+    pub fn new(height: u64, round: u64, block_id: Option<Hash32>, voter: Address) -> Self {
+        Self {
+            height,
+            round,
+            block_id,
+            voter,
+            timestamp: 0,
+        }
+    }
+
+    pub fn is_nil(&self) -> bool {
+        self.block_id.is_none()
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct BFTMessage {
+    pub message_type: BFTMessageType,
+    pub height: u64,
+    pub round: u64,
+    pub block_id: Option<Hash32>,
+    pub sender: Address,
+    pub signature: Vec<u8>,
+    pub timestamp: u64,
+}
+
+#[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum BFTMessageType {
+    Proposal,
+    Prevote,
+    Precommit,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct EquivocationProof {
+    pub round: u64,
+    pub height: u64,
+    pub equivocator: Address,
+    pub first_message: BFTMessage,
+    pub second_message: BFTMessage,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ValidatorSignature {
+    pub validator: Address,
+    pub signature: Vec<u8>,
+    pub block_hash: Hash32,
+}
+
+impl ValidatorSignature {
+    pub fn new(validator: Address, signature: Vec<u8>, block_hash: Hash32) -> Self {
+        Self {
+            validator,
+            signature,
+            block_hash,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct FinalitySignature {
+    pub block_hash: Hash32,
+    pub block_number: u64,
+    pub validator_set_id: u64,
+    pub signatures: Vec<ValidatorSignature>,
+    pub is_commit: bool,
+}
+
+impl FinalitySignature {
+    pub fn new(block_hash: Hash32, block_number: u64, validator_set_id: u64) -> Self {
+        Self {
+            block_hash,
+            block_number,
+            validator_set_id,
+            signatures: Vec::new(),
+            is_commit: false,
+        }
+    }
+
+    pub fn add_signature(&mut self, signature: ValidatorSignature) {
+        if signature.block_hash == self.block_hash {
+            self.signatures.push(signature);
+        }
+    }
+
+    pub fn quorum_reached(&self, total_validators: u32) -> bool {
+        let quorum = (total_validators * 2) / 3 + 1;
+        self.signatures.len() as u32 >= quorum
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ValidatorSetChange {
+    pub set_id: u64,
+    pub added: Vec<Address>,
+    pub removed: Vec<Address>,
+    pub updated_stake: Vec<(Address, u128)>,
+    pub activation_block: u64,
+}
+
+impl ValidatorSetChange {
+    pub fn new(set_id: u64, activation_block: u64) -> Self {
+        Self {
+            set_id,
+            added: Vec::new(),
+            removed: Vec::new(),
+            updated_stake: Vec::new(),
+            activation_block,
+        }
+    }
+
+    pub fn add_validator(&mut self, validator: Address) {
+        if !self.added.contains(&validator) {
+            self.added.push(validator);
+        }
+    }
+
+    pub fn remove_validator(&mut self, validator: Address) {
+        if !self.removed.contains(&validator) {
+            self.removed.push(validator);
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ConsensusRound {
+    pub height: u64,
+    pub round: u64,
+    pub proposer: Address,
+    pub state: ConsensusRoundState,
+    pub locked_value: Option<Hash32>,
+    pub locked_round: Option<u64>,
+    pub valid_value: Option<Hash32>,
+    pub valid_round: Option<u64>,
+    pub prevotes: Vec<Prevote>,
+    pub precommits: Vec<Precommit>,
+    pub proposal: Option<ConsensusProposal>,
+}
+
+#[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ConsensusRoundState {
+    Propose,
+    Prevote,
+    Precommit,
+    Finalized,
+}
+
+impl ConsensusRound {
+    pub fn new(height: u64, round: u64, proposer: Address) -> Self {
+        Self {
+            height,
+            round,
+            proposer,
+            state: ConsensusRoundState::Propose,
+            locked_value: None,
+            locked_round: None,
+            valid_value: None,
+            valid_round: None,
+            prevotes: Vec::new(),
+            precommits: Vec::new(),
+            proposal: None,
+        }
+    }
+
+    pub fn add_prevote(&mut self, prevote: Prevote) {
+        if !self.prevotes.iter().any(|p| p.voter == prevote.voter) {
+            self.prevotes.push(prevote);
+        }
+    }
+
+    pub fn add_precommit(&mut self, precommit: Precommit) {
+        if !self.precommits.iter().any(|p| p.voter == precommit.voter) {
+            self.precommits.push(precommit);
+        }
+    }
+
+    pub fn prevote_count(&self, block_hash: &Hash32) -> u32 {
+        self.prevotes
+            .iter()
+            .filter(|p| p.block_id.as_ref() == Some(block_hash))
+            .count() as u32
+    }
+
+    pub fn precommit_count(&self, block_hash: &Hash32) -> u32 {
+        self.precommits
+            .iter()
+            .filter(|p| p.block_id.as_ref() == Some(block_hash))
+            .count() as u32
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ConsensusTimestamps {
+    pub propose_start: u64,
+    pub propose_end: u64,
+    pub prevote_end: u64,
+    pub precommit_end: u64,
+}
+
+impl ConsensusTimestamps {
+    pub fn new(
+        propose_timeout_ms: u64,
+        prevote_timeout_ms: u64,
+        precommit_timeout_ms: u64,
+    ) -> Self {
+        Self {
+            propose_start: 0,
+            propose_end: propose_timeout_ms,
+            prevote_end: propose_timeout_ms + prevote_timeout_ms,
+            precommit_end: propose_timeout_ms + prevote_timeout_ms + precommit_timeout_ms,
+        }
+    }
+
+    pub fn is_expired(&self, current_time: u64, stage: ConsensusRoundState) -> bool {
+        match stage {
+            ConsensusRoundState::Propose => current_time >= self.propose_end,
+            ConsensusRoundState::Prevote => current_time >= self.prevote_end,
+            ConsensusRoundState::Precommit => current_time >= self.precommit_end,
+            ConsensusRoundState::Finalized => true,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ValidatorStatus {
+    Active,
+    Inactive,
+    Pending,
+    Jailed,
+    Slashed,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ValidatorRanking {
+    pub rank: u32,
+    pub account_id: Address,
+    pub stake: u128,
+    pub commission: u8,
+    pub active: bool,
+}
+
+impl ValidatorRanking {
+    pub fn rank(validators: &[Validator]) -> Vec<Self> {
+        let mut ranked: Vec<ValidatorRanking> = validators
+            .iter()
+            .filter(|v| v.active && !v.jailed)
+            .enumerate()
+            .map(|(i, v)| Self {
+                rank: i as u32 + 1,
+                account_id: v.account_id,
+                stake: v.stake,
+                commission: v.commission,
+                active: v.active,
+            })
+            .collect();
+        ranked.sort_by(|a, b| b.stake.cmp(&a.stake));
+        for (i, r) in ranked.iter_mut().enumerate() {
+            r.rank = i as u32 + 1;
+        }
+        ranked
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SlashingInfo {
+    pub validator: Address,
+    pub offense_type: SlashingOffense,
+    pub slash_amount: u128,
+    pub evidence: Vec<u8>,
+    pub block_number: u64,
+}
+
+#[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SlashingOffense {
+    DoubleVote,
+    Equivocation,
+    Unresponsive,
+    InvalidBlock,
+    InvalidVote,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ValidatorPerf {
+    pub account_id: Address,
+    pub blocks_proposed: u64,
+    pub blocks_authored: u64,
+    pub prevotes_cast: u64,
+    pub precommits_cast: u64,
+    pub missed_votes: u64,
+    pub offline_events: u64,
+    pub slashed: bool,
+}
+
+impl ValidatorPerf {
+    pub fn new(account_id: Address) -> Self {
+        Self {
+            account_id,
+            blocks_proposed: 0,
+            blocks_authored: 0,
+            prevotes_cast: 0,
+            precommits_cast: 0,
+            missed_votes: 0,
+            offline_events: 0,
+            slashed: false,
+        }
+    }
+
+    pub fn uptime_percentage(&self) -> u32 {
+        let total = self.prevotes_cast + self.precommits_cast + self.missed_votes;
+        if total == 0 {
+            return 100;
+        }
+        ((self.prevotes_cast + self.precommits_cast) as u64 * 100 / total) as u32
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ConsensusState {
+    pub height: u64,
+    pub round: u64,
+    pub locked_block: Option<Hash32>,
+    pub valid_block: Option<Hash32>,
+    pub last_commit: Option<FinalitySignature>,
+    pub proposer: Option<Address>,
+}
+
+impl ConsensusState {
+    pub fn new() -> Self {
+        Self {
+            height: 0,
+            round: 0,
+            locked_block: None,
+            valid_block: None,
+            last_commit: None,
+            proposer: None,
+        }
+    }
+}
+
+impl Default for ConsensusState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
