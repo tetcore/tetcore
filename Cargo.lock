@@ -553,11 +553,11 @@ dependencies = [
 
 [[package]]
 name = "tetcore"
-version = "0.1.0"
+version = "0.1.1"
 
 [[package]]
 name = "tetcore-kernel"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "serde",
  "sha2",
@@ -567,7 +567,7 @@ dependencies = [
 
 [[package]]
 name = "tetcore-node"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "clap",
  "ed25519-dalek",
@@ -584,7 +584,7 @@ dependencies = [
 
 [[package]]
 name = "tetcore-primitives"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "ed25519-dalek",
  "hex",
@@ -596,7 +596,7 @@ dependencies = [
 
 [[package]]
 name = "tetcore-runtime"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "serde",
  "sha2",
@@ -607,7 +607,7 @@ dependencies = [
 
 [[package]]
 name = "tetcore-vm"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "serde",
  "tetcore-primitives",
