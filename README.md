@@ -141,4 +141,4 @@ cargo publish -p tetcore-node
 
 ## License
 
-MIT License
+DOSL
