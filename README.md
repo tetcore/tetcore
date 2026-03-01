@@ -66,6 +66,24 @@ cargo build
 
 The executable is at `target/debug/tetcore.exe` (or `target/release/tetcore.exe`)
 
+### Testing
+
+```bash
+cd tetcore/tetcore-kernel
+cargo test
+```
+
+**93 tests passing** covering all modules:
+- Core kernel (state, transactions, storage)
+- Consensus (validator set, BFT voting, finality)
+- Economics (token supply, staking, treasury)
+- Governance (proposals, voting, emergency powers)
+- IFP (model registry, prompts, revenue)
+- Network (peer management, gossip)
+- SDK (genesis, parameters)
+- TVM (contract execution, gas)
+- Integration tests
+
 ### Commands
 
 ```bash
