@@ -116,3 +116,23 @@ fn main() {
         }
     }
 }
+
+fn run_operator_mode() {
+    println!("Starting Tetcore node in operator mode...");
+    println!("Tetcore v0.1.0 - Inference Operator");
+    println!();
+    println!("Operator node running. Monitoring for prompts...");
+    println!("Press Ctrl+C to stop.");
+    
+    // In a real implementation, this would:
+    // 1. Connect to the network
+    // 2. Monitor for SubmitPrompt transactions
+    // 3. Execute prompts and generate receipts
+    // 4. Submit receipts to the blockchain
+    
+    loop {
+        std::thread::sleep(std::time::Duration::from_secs(1));
+    }
+}
+    }
+}

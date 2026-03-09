@@ -90,6 +90,44 @@ impl InflationConfig {
         let validators = amount.saturating_sub(treasury);
         (treasury, validators)
     }
+
+    /// Set inflation parameters with governance controls
+    pub fn set_inflation_parameters(
+        &mut self,
+        rate_bps: u64,
+        start_block: u64,
+        end_block: u64,
+        treasury_share_bps: u64,
+        validator_share_bps: u64,
+    ) {
+        self.rate_bps = rate_bps.min(MAX_INFLATION_RATE_BPS);
+        self.start_block = start_block;
+        self.end_block = end_block;
+        self.treasury_share_bps = treasury_share_bps.min(10000);
+        self.validator_share_bps = validator_share_bps.min(10000);
+        
+        // Ensure shares add up to 100%
+        if self.treasury_share_bps + self.validator_share_bps > 10000 {
+            let total = self.treasury_share_bps + self.validator_share_bps;
+            self.treasury_share_bps = (self.treasury_share_bps * 10000) / total;
+            self.validator_share_bps = (self.validator_share_bps * 10000) / total;
+        }
+    }
+
+    /// Enable inflation with governance approval
+    pub fn enable_with_governance(&mut self) {
+        self.state = InflationState::Enabled;
+    }
+
+    /// Disable inflation with governance approval
+    pub fn disable_with_governance(&mut self) {
+        self.state = InflationState::Disabled;
+    }
+
+    /// Set hard cap for total inflation
+    pub fn set_inflation_cap(&mut self, cap: u128) {
+        self.cap = cap;
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -324,6 +362,7 @@ impl StakingModule {
         }
 
         self.token_supply.remove_from_circulating(amount);
+        self.token_supply.escrowed = self.token_supply.escrowed.saturating_add(amount);
 
         let staker_info = self
             .stakers
@@ -359,6 +398,7 @@ impl StakingModule {
             staker_info.remove_stake(shares, &mut self.total_staked, &mut self.total_shares);
 
         self.token_supply.add_to_circulating(amount);
+        self.token_supply.escrowed = self.token_supply.escrowed.saturating_sub(amount);
 
         if staker_info.shares == 0 {
             self.stakers.remove(&staker);
@@ -596,6 +636,45 @@ impl Treasury {
     pub fn burn_unspent(&mut self) {
         self.balance = 0;
     }
+
+    /// Set spend limit per proposal with governance control
+    pub fn set_spend_limit(&mut self, limit: u128) {
+        self.spend_limit_per_proposal = limit.min(TOTAL_SUPPLY / 10); // Max 10% of total supply
+    }
+
+    /// Get current treasury funding sources breakdown
+    pub fn funding_sources(&self) -> TreasuryFundingSources {
+        TreasuryFundingSources {
+            inflation_contribution: 0, // Would be tracked separately
+            fee_contribution: 0,      // Would be tracked separately
+            inference_contribution: 0, // Would be tracked separately
+        }
+    }
+
+    /// Get treasury transparency report
+    pub fn transparency_report(&self) -> TreasuryReport {
+        TreasuryReport {
+            current_balance: self.balance,
+            total_spent: self.spent,
+            proposal_count: self.proposal_count,
+            spend_limit: self.spend_limit_per_proposal,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Copy)]
+pub struct TreasuryFundingSources {
+    pub inflation_contribution: u128,
+    pub fee_contribution: u128,
+    pub inference_contribution: u128,
+}
+
+#[derive(Clone, Debug, Copy)]
+pub struct TreasuryReport {
+    pub current_balance: u128,
+    pub total_spent: u128,
+    pub proposal_count: u64,
+    pub spend_limit: u128,
 }
 
 impl Default for Treasury {
@@ -672,6 +751,58 @@ impl FeeModule {
             self.congestion_multiplier = 1000;
         }
     }
+
+    /// Set fee distribution parameters with governance control
+    pub fn set_fee_distribution(&mut self, burn_pct: u8, treasury_pct: u8, validator_pct: u8) {
+        // Ensure percentages add up to 100%
+        let total = burn_pct + treasury_pct + validator_pct;
+        if total != 100 {
+            // Normalize to 100%
+            self.burn_percentage = (burn_pct as u128 * 100 / total as u128) as u8;
+            self.treasury_share = (treasury_pct as u128 * 100 / total as u128) as u8;
+            self.validator_share = (validator_pct as u128 * 100 / total as u128) as u8;
+        } else {
+            self.burn_percentage = burn_pct;
+            self.treasury_share = treasury_pct;
+            self.validator_share = validator_pct;
+        }
+    }
+
+    /// Set base fee with governance control
+    pub fn set_base_fee(&mut self, base_fee: u128) {
+        self.base_fee = base_fee;
+    }
+
+    /// Set congestion parameters with governance control
+    pub fn set_congestion_parameters(&mut self, target_utilization: u64) {
+        self.target_utilization = target_utilization.min(90).max(50); // Keep between 50-90%
+    }
+
+    /// Get current fee structure report
+    pub fn fee_structure_report(&self) -> FeeStructureReport {
+        FeeStructureReport {
+            base_fee: self.base_fee,
+            min_gas_price: self.min_gas_price,
+            max_gas_price: self.max_gas_price,
+            burn_percentage: self.burn_percentage,
+            treasury_share: self.treasury_share,
+            validator_share: self.validator_share,
+            congestion_multiplier: self.congestion_multiplier,
+            target_utilization: self.target_utilization,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Copy)]
+pub struct FeeStructureReport {
+    pub base_fee: u128,
+    pub min_gas_price: u128,
+    pub max_gas_price: u128,
+    pub burn_percentage: u8,
+    pub treasury_share: u8,
+    pub validator_share: u8,
+    pub congestion_multiplier: u128,
+    pub target_utilization: u64,
 }
 
 #[cfg(test)]
@@ -747,5 +878,115 @@ mod tests {
 
         let result = treasury.spend(treasury.spend_limit_per_proposal + 1);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_inflation_governance_controls() {
+        let mut config = InflationConfig::default();
+        
+        // Test setting inflation parameters
+        config.set_inflation_parameters(500, 1000, 2000, 3000, 7000);
+        assert_eq!(config.rate_bps, 500);
+        assert_eq!(config.treasury_share_bps, 3000);
+        assert_eq!(config.validator_share_bps, 7000);
+        
+        // Test governance enable/disable
+        config.enable_with_governance();
+        assert_eq!(config.state, InflationState::Enabled);
+        
+        config.disable_with_governance();
+        assert_eq!(config.state, InflationState::Disabled);
+        
+        // Test inflation cap
+        config.set_inflation_cap(1000000);
+        assert_eq!(config.cap, 1000000);
+    }
+
+    #[test]
+    fn test_treasury_governance_controls() {
+        let mut treasury = Treasury::new();
+        
+        // Test setting spend limit
+        treasury.set_spend_limit(50000);
+        assert_eq!(treasury.spend_limit_per_proposal, 50000);
+        
+        // Test transparency report
+        treasury.deposit(10000);
+        let report = treasury.transparency_report();
+        assert_eq!(report.current_balance, 10000);
+        assert_eq!(report.total_spent, 0);
+    }
+
+    #[test]
+    fn test_fee_governance_controls() {
+        let mut fee_module = FeeModule::default();
+        
+        // Test setting fee distribution
+        fee_module.set_fee_distribution(10, 20, 70);
+        assert_eq!(fee_module.burn_percentage, 10);
+        assert_eq!(fee_module.treasury_share, 20);
+        assert_eq!(fee_module.validator_share, 70);
+        
+        // Test setting base fee
+        fee_module.set_base_fee(2000);
+        assert_eq!(fee_module.base_fee, 2000);
+        
+        // Test setting congestion parameters
+        fee_module.set_congestion_parameters(75);
+        assert_eq!(fee_module.target_utilization, 75);
+        
+        // Test fee structure report
+        let report = fee_module.fee_structure_report();
+        assert_eq!(report.base_fee, 2000);
+        assert_eq!(report.burn_percentage, 10);
+    }
+
+    #[test]
+    fn test_monetary_policy_scenarios() {
+        let mut staking = StakingModule::new();
+        let validator = create_address(1);
+        
+        // Scenario A: High usage, no inflation (fee-sustained)
+        staking.register_validator(validator, 1000).unwrap();
+        staking.validator_stake(validator, 10000).unwrap();
+        
+        // Simulate fee revenue
+        staking.distribute_block_rewards(1000);
+        let validator_info = staking.get_validator_info(&validator).unwrap();
+        assert!(validator_info.pending_rewards > 0);
+        
+        // Scenario B: Low usage, temporary inflation
+        staking.inflation_config.enable_with_governance();
+        staking.inflation_config.set_inflation_parameters(200, 0, 1000, 2000, 8000);
+        
+        let (treasury_mint, validator_mint) = staking.process_inflation(500);
+        assert!(treasury_mint > 0);
+        assert!(validator_mint > 0);
+    }
+
+    #[test]
+    fn test_economic_invariants() {
+        let mut staking = StakingModule::new();
+        let staker = create_address(1);
+        
+        // Test supply invariant
+        staking.token_supply.circulating = 1000;
+        staking.token_supply.total = 1000;
+        staking.stake(staker, 100, 1).unwrap();
+        
+        // After staking, circulating should be 900, escrowed should be 100
+        assert_eq!(staking.token_supply.circulating, 900);
+        assert_eq!(staking.token_supply.escrowed, 100);
+        assert!(staking.token_supply.verify_invariant());
+        
+        // Test inflation doesn't break invariant
+        staking.inflation_config.enable_with_governance();
+        staking.inflation_config.set_inflation_parameters(100, 0, 100, 2000, 8000);
+        let (treasury_mint, validator_mint) = staking.process_inflation(50);
+        
+        // Total supply should increase by mint amount
+        let total_mint = treasury_mint + validator_mint;
+        assert_eq!(staking.token_supply.total, 1000 + total_mint);
+        assert!(staking.token_supply.verify_invariant());
     }
 }

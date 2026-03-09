@@ -13,6 +13,8 @@ use tetcore_runtime::Runtime;
 use tetcore_vm::TVM;
 use thiserror::Error;
 
+pub mod operator;
+
 #[derive(Error, Debug, Clone)]
 pub enum NodeError {
     #[error("Block validation failed")]
@@ -272,5 +274,36 @@ impl TetcoreNode {
 
     pub fn chain_mut(&mut self) -> &mut ChainStorage {
         &mut self.chain
+    }
+
+    /// Operator-specific functionality
+    pub fn is_operator_mode(&self) -> bool {
+        matches!(self.mode, NodeMode::InferenceOperator)
+    }
+
+    /// Create an operator instance for this node
+    pub fn create_operator(&self) -> operator::InferenceOperator {
+        use operator::{OperatorConfig, RelayMode, PricingPolicy};
+
+        let config = OperatorConfig {
+            operator_address: self.my_address.unwrap_or(Address::zero()),
+            supported_models: Vec::new(), // Would be configured in real implementation
+            max_concurrent_executions: 4,
+            relay_mode: RelayMode::RelayTransport,
+            pricing_policy: PricingPolicy::MarketBased,
+            ..Default::default()
+        };
+
+        let model_registry = self.runtime.model_registry().clone();
+        operator::InferenceOperator::new(config, model_registry)
+    }
+
+    /// Get operator configuration if in operator mode
+    pub fn get_operator_config(&self) -> Option<operator::OperatorConfig> {
+        if self.is_operator_mode() {
+            Some(self.create_operator().get_config().clone())
+        } else {
+            None
+        }
     }
 }
